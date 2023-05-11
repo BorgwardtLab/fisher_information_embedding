@@ -9,7 +9,7 @@ from .layers import FIELayer, FIEPooling, KernelLayer
 
 class FIENet(nn.Module):
     def __init__(self, input_size, num_layers=2, hidden_size=64, num_mixtures=1, num_heads=1,
-                 residue=True, out_proj='kernel', out_proj_args=0.5, use_deg=False,
+                 residue=True, out_proj='kernel', out_proj_args=1.0, use_deg=False,
                  pooling='fie', concat=False):
         super().__init__()
 
@@ -19,9 +19,6 @@ class FIENet(nn.Module):
 
         self.in_head = KernelLayer(input_size, hidden_size, sigma=out_proj_args)
 
-        # layers = [FIELayer(
-        #     input_size, hidden_size, num_heads, residue, out_proj, out_proj_args)
-        # ]
         layers = []
 
         for i in range(num_layers - 1):
@@ -126,7 +123,7 @@ class FIENet(nn.Module):
         return x
 
     @torch.no_grad()
-    def unsup_train(self, data_loader, n_samples=100000,
+    def unsup_train(self, data_loader, n_samples=300000,
                     init=None,  device='cpu'):
         self.train(False)
         try:
@@ -265,11 +262,6 @@ class SupFIENet(nn.Module):
                 FIELayer(hidden_size, hidden_size, num_mixtures, num_heads,
                          residue, 'kernel', 'exp', out_proj_args, use_deg)
             )
-
-        # layers.append(
-        #     FIELayer(hidden_size, hidden_size, num_mixtures, num_heads,
-        #              residue, 'kernel', 'exp', out_proj_args, use_deg)
-        # )
 
         self.layers = nn.ModuleList(layers)
 
@@ -419,7 +411,6 @@ class ReLUFIENet(nn.Module):
             )
         self.layers = nn.ModuleList(layers)
 
-        # output_size = hidden_size * (num_layers + 1) if concat else hidden_size
         output_size = hidden_size
         self.classifier = nn.Sequential(
             nn.Linear(output_size, num_class))
@@ -431,42 +422,30 @@ class ReLUFIENet(nn.Module):
 
         x = self.in_head(x)
 
-        # outputs = [x]
         outputs = x
         output = x
         for i, mod in enumerate(self.layers):
             output = mod(output, edge_index, edge_attr, deg_sqrt=deg_sqrt)
-            # outputs.append(output)
             if self.concat:
                 output = outputs + output
                 outputs = output
             if i < self.num_layers - 1:
                 output = F.dropout(output, p=self.dropout, training=self.training)
 
-        # if self.concat:
-        #     output = torch.cat(outputs, dim=-1)
-        # else:
-        #     output = outputs[-1]
-
         return self.classifier(output)
 
     def forward_ns(self, x, adjs, batch_size):
         x = self.in_head(x)
 
-        # outputs = [x[:batch_size]]
         outputs = x#[:batch_size]
         for i, (edge_index, _, size) in enumerate(adjs):
             x_target = x[:size[1]]
             x = self.layers[i]((x, x_target), edge_index)
             if self.concat:
-                # outputs.append(x[:batch_size])
                 x = x_target + x
-                # outputs = x
             if i < self.num_layers - 1:
                 x = F.dropout(x, p=self.dropout, training=self.training)
         
-        # if self.concat:
-        #     x = torch.cat(outputs, dim=-1)
         return self.classifier(x)
 
     def inference_ns(self, x_all, subgraph_loader):
@@ -485,34 +464,5 @@ class ReLUFIENet(nn.Module):
                     x = x_target + x
                 xs.append(x.cpu())
             x_all = torch.cat(xs, dim=0)
-            # if self.concat:
-            #     # outputs.append(x_all)
-            #     x_all = outputs + x_all
-            #     outputs = x_all
-        
-        # if self.concat:
-        #     x_all = torch.cat(outputs, dim=-1)
 
         return self.classifier(x_all.to(device))
-
-if __name__ == '__main__':
-    from torch_geometric import datasets
-    from torch_geometric.loader import DataLoader
-    torch.manual_seed(0)
-
-    dset = datasets.TUDataset("../datasets/TUDataset", 'MUTAG')
-    train_loader = DataLoader(dset, batch_size=16, shuffle=False)
-
-    model = FIENet(
-        7,
-        num_layers=3,
-        hidden_size=64,
-        num_heads=4,
-        concat=True,
-    )
-
-    for data in train_loader:
-        out = model(data)
-        print(out)
-        print(out.shape)
-        break
