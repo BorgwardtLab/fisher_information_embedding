@@ -32,7 +32,6 @@ def gmm_attn2(x, mu0, log_pi):
     x = x.unsqueeze(1).expand(n, p*h, d)
     mu0 = mu0.unsqueeze(0).expand(n, p*h, d)
     dist = torch.pow(x - mu0, 2).sum(2)
-    #dist = torch.pow(torch.cdist(x, mu), 2) # n * (p h)
     dist = rearrange(dist, "n (p h) -> n p h", p=p) # n * p * h
     attn = F.softmax(-dist, dim=1) # doing softmax is attn_j = exp(-|x-mu0_j|^2)/sum_l exp(-|x-mu0_l|^2)
     return attn # n * p * h
@@ -74,18 +73,14 @@ class FIEEmbedder(nn.Module):
     def forward(self, x):
         # x = n * d
         mu = self.mu0 # p * h * d
-        #for i in range(self.num_mixtures):
-        #    mu[i] = x[np.random.randint(x.shape[0])]
-        #print("mu", mu)
         for _ in range(self.num_em_iters):
             alpha = gmm_attn2(x, mu, self.bias) # n * num_mixtures * 1
             alpha = rearrange(alpha, "n p h -> h n p") # h * n * num_mixtures
-            #print("alpha", alpha.sum(1))
             alpha = torch.clamp(alpha, min=1e-30)
             alpha = alpha/alpha.sum(1)
 
             mu = torch.matmul(torch.transpose(alpha, 1, 2), x) # h * p * d
-            mu = rearrange(mu, "h p d -> p h d") # now it's like mu0, but baybe better to keep h p d
+            mu = rearrange(mu, "h p d -> p h d") 
 
             #print("mu", mu)
         return mu #  p * h * d
@@ -119,8 +114,7 @@ def run_exp(n_exp):
                 goldberg_kl = 0
                 for mu2j in mu2:
                     goldberg_kl += min([ np.linalg.norm((np.array(mu2j) - np.array(mu1j)))**2 for mu1j in mu1])/(2.0*len(mu2))
-                #print(goldberg_kl)
-
+                
                 var = 1
                 cov = np.diag([var for _ in range(n_features)])
 
@@ -135,7 +129,6 @@ def run_exp(n_exp):
                 phi1 = fie.forward(distrib1)/math.sqrt(num_mixtures_est)
                 phi2 = fie.forward(distrib2)/math.sqrt(num_mixtures_est)
 
-                #print( (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy() )
                 out[k-range_k[0]][it] = (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy()
 
         mean = np.zeros(len(range_k))
@@ -184,8 +177,7 @@ def run_exp(n_exp):
                 goldberg_kl = 0
                 for mu2j in mu2:
                     goldberg_kl += min([ np.linalg.norm((np.array(mu2j) - np.array(mu1j)))**2 for mu1j in mu1])/(2.0*len(mu2))
-                #print(goldberg_kl)
-
+                
                 var = 1
                 cov = np.diag([var for _ in range(n_features)])
 
@@ -200,10 +192,6 @@ def run_exp(n_exp):
                 phi1 = fie.forward(distrib1)/math.sqrt(num_mixtures_est)
                 phi2 = fie.forward(distrib2)/math.sqrt(num_mixtures_est)
 
-                #print(phi1*math.sqrt(num_mixtures_est))
-                #print(phi2*math.sqrt(num_mixtures_est))
-
-                #print(i, it, (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy() )
                 out[i][it] = (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy()
 
         mean = np.zeros(len(range_d))
@@ -251,17 +239,12 @@ def run_exp(n_exp):
                 goldberg_kl = 0
                 for mu2j in mu2:
                     goldberg_kl += min([ np.linalg.norm((np.array(mu2j) - np.array(mu1j)))**2 for mu1j in mu1])/(2.0*len(mu2))
-                #print(goldberg_kl)
-
+                
                 var = 1
                 cov = np.diag([var for _ in range(n_features)])
 
                 distrib1 = [torch.from_numpy(np.random.multivariate_normal(mu1[i], cov)).float() for i in np.random.choice(range(3), size=n_samples)]
                 distrib2 = [torch.from_numpy(np.random.multivariate_normal(mu2[i], cov)).float() for i in np.random.choice(range(3), size=n_samples)]
-                #print(distrib1)
-                #plt.scatter([_[0] for _ in distrib1], [_[1] for _ in distrib1])
-                #plt.scatter([_[0] for _ in distrib2], [_[1] for _ in distrib2])
-                #plt.show()
                 distrib1 = rearrange(distrib1, "n d -> n d")
                 distrib2 = rearrange(distrib2, "n d -> n d")
 
@@ -271,10 +254,6 @@ def run_exp(n_exp):
                 phi1 = fie.forward(distrib1)/math.sqrt(num_mixtures_est)
                 phi2 = fie.forward(distrib2)/math.sqrt(num_mixtures_est)
 
-                #print(phi1*math.sqrt(num_mixtures_est))
-                #print(phi2*math.sqrt(num_mixtures_est))
-
-                #print(i, it, (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy() )
                 out[i][it] = (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy()
 
         mean = np.zeros(len(range_d))
@@ -295,74 +274,8 @@ def run_exp(n_exp):
 
 
 
-    if n_exp == 3: # fix number of components and dist in both distr., vary variance
-        n_samples = 5000
-        n_features = 2
-        num_mixtures_est = 10
 
-
-        n_iters = 20
-
-        range_v = [0.1, 0.31, 1.0, 3.1, 10]
-        out = [np.zeros(n_iters) for _ in range_v]
-
-        for it in range(n_iters):
-            fie = FIEEmbedder(n_features, num_mixtures_est, num_em_iters=10)
-            for i in range(len(range_v)):
-                mu1 = [[-5, -2]+[0 for _ in range(n_features-2)],
-                    [-5-de, 0]+[0 for _ in range(n_features-2)],
-                    [-5, 2]+[0 for _ in range(n_features-2)]
-                    ]
-
-                mu2 = [[5, -2]+[0 for _ in range(n_features-2)],
-                    [5+de, 0]+[0 for _ in range(n_features-2)],
-                    [5, 2]+[0 for _ in range(n_features-2)]
-                    ]
-
-
-                var = range_v[i]
-                cov = np.diag([var for _ in range(n_features)])
-
-                goldberg_kl = 0
-                for mu2j in mu2:
-                    goldberg_kl += min([ np.linalg.norm((np.array(mu2j) - np.array(mu1j)))**2 for mu1j in mu1])/(2.0*len(mu2)*var)
-                #print(goldberg_kl)
-
-                distrib1 = [torch.from_numpy(np.random.multivariate_normal(mu1[i], cov)).float() for i in np.random.choice(range(3), size=n_samples)]
-                distrib2 = [torch.from_numpy(np.random.multivariate_normal(mu2[i], cov)).float() for i in np.random.choice(range(3), size=n_samples)]
-                distrib1 = rearrange(distrib1, "n d -> n d")
-                distrib2 = rearrange(distrib2, "n d -> n d")
-
-                distrib_tot = torch.cat([distrib1, distrib2], dim = 0)
-                if unsup_train:
-                    fie.unsup_train_rand(distrib_tot)
-                phi1 = fie.forward(distrib1)/math.sqrt(num_mixtures_est)
-                phi2 = fie.forward(distrib2)/math.sqrt(num_mixtures_est)
-
-                #print(phi1*math.sqrt(num_mixtures_est))
-                #print(phi2*math.sqrt(num_mixtures_est))
-
-                #print(i, it, (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy() )
-                out[i][it] = (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy()
-
-        mean = np.zeros(len(range_v))
-        std = np.zeros(len(range_v))
-        for i in range(len(range_v)):
-            mean[i] = np.mean(out[i])
-            std[i] = np.std(out[i])
-
-        print(mean)
-        print(std)
-        print("")
-        plt.loglog(range_v, mean, '-o')
-        plt.fill_between(range_v, mean-std, mean+std, alpha=0.25)
-        #plt.title(r"Vary variance of each component")
-        plt.xlabel(r"Variance $\sigma^2$", fontsize=25)
-        plt.ylabel(r" $ \|\phi(p_1) - \phi(p_2)\|^2 / 2D(p_1 \| p_2)$", fontsize=18)
-
-
-
-    if n_exp == 4: # vary n. em iterations
+    if n_exp == 3: # vary n. em iterations
         n_samples = 5000
         n_features = 2
         num_mixtures_est = 10
@@ -393,8 +306,7 @@ def run_exp(n_exp):
                 goldberg_kl = 0
                 for mu2j in mu2:
                     goldberg_kl += min([ np.linalg.norm((np.array(mu2j) - np.array(mu1j)))**2 for mu1j in mu1])/(2.0*len(mu2)*var)
-                #print(goldberg_kl)
-
+                
                 distrib1 = [torch.from_numpy(np.random.multivariate_normal(mu1[i], cov)).float() for i in np.random.choice(range(3), size=n_samples)]
                 distrib2 = [torch.from_numpy(np.random.multivariate_normal(mu2[i], cov)).float() for i in np.random.choice(range(3), size=n_samples)]
                 distrib1 = rearrange(distrib1, "n d -> n d")
@@ -406,10 +318,6 @@ def run_exp(n_exp):
                 phi1 = fie.forward(distrib1)/math.sqrt(num_mixtures_est)
                 phi2 = fie.forward(distrib2)/math.sqrt(num_mixtures_est)
 
-                #print(phi1*math.sqrt(num_mixtures_est))
-                #print(phi2*math.sqrt(num_mixtures_est))
-
-                #print(i, it, (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy() )
                 out[i][it] = (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy()
 
         mean = np.zeros(len(range_v))
@@ -430,7 +338,7 @@ def run_exp(n_exp):
 
 
 
-    if n_exp == 5: # vary n. mixtures
+    if n_exp == 4: # vary n. mixtures
         n_samples = 5000
         n_features = 2
         de = 4
@@ -461,8 +369,7 @@ def run_exp(n_exp):
                 goldberg_kl = 0
                 for mu2j in mu2:
                     goldberg_kl += min([ np.linalg.norm((np.array(mu2j) - np.array(mu1j)))**2 for mu1j in mu1])/(2.0*len(mu2)*var)
-                #print(goldberg_kl)
-
+                
                 distrib1 = [torch.from_numpy(np.random.multivariate_normal(mu1[i], cov)).float() for i in np.random.choice(range(3), size=n_samples)]
                 distrib2 = [torch.from_numpy(np.random.multivariate_normal(mu2[i], cov)).float() for i in np.random.choice(range(3), size=n_samples)]
                 distrib1 = rearrange(distrib1, "n d -> n d")
@@ -474,10 +381,6 @@ def run_exp(n_exp):
                 phi1 = fie.forward(distrib1)/math.sqrt(num_mixtures_est)
                 phi2 = fie.forward(distrib2)/math.sqrt(num_mixtures_est)
 
-                #print(phi1*math.sqrt(num_mixtures_est))
-                #print(phi2*math.sqrt(num_mixtures_est))
-
-                #print(i, it, (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy() )
                 out[i][it] = (((phi1-phi2).norm()**2) / (2*goldberg_kl)).detach().numpy()
 
         mean = np.zeros(len(range_v))
@@ -504,7 +407,7 @@ if len(sys.argv) > 1:
     plt.savefig("exp_"+str(n_exp)+".png", dpi=600)
     plt.show()
 else:
-    for n_exp in range(6):
+    for n_exp in range(5):
         run_exp(n_exp)
 
         plt.tight_layout()
