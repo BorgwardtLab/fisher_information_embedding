@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fisher_information_embedding"
+authors = [
+    {name = "Dexiong Chen", email = "dechen@ethz.ch"},
+    {name = "Paolo Pellizzoni", email = "pellizzoni@ethz.ch"},
+]
+description = "Fisher information embedding for node and graph learning"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["graph neural network", "graph attention network", "graph kernel", "node embedding", "set pooling", "attention mechanism"]
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dynamic = ["version"]
+
+[tool.setuptools]
+packages = ["fie"]

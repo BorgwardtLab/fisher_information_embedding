@@ -1,0 +1,64 @@
+\documentclass{standalone}
+\usepackage{pgfplots}
+% Nice color sets, see see http://colorbrewer2.org/
+\usepgfplotslibrary{colorbrewer}
+% initialize Set1-4 from colorbrewer (we're comparing 4 classes),
+%\pgfplotsset{compat = 1.15, cycle list/Pastel1}
+\pgfplotsset{compat = 1.15, cycle list/Set1}
+%\pgfplotsset{compat = 1.15, cycle list/RdBu-10}
+% Tikz is loaded automatically by pgfplots
+\usetikzlibrary{pgfplots.statistics, pgfplots.colorbrewer}
+% provides \pgfplotstabletranspose
+\usepackage{pgfplotstable}
+\usepackage{filecontents}
+​
+​
+\begin{document}
+\begin{tikzpicture}
+	\pgfplotstableread[col sep=comma]{results/num_mixtures_Cora_unsup.csv}\csvdataunsup
+	\pgfplotstableread[col sep=comma]{results/num_mixtures_Cora_sup.csv}\csvdatasup
+	% Boxplot groups columns, but we want rows
+%	\pgfplotstabletranspose\datatransposed{\csvdata}
+	\begin{axis}[
+%		boxplot/draw direction = y,
+%		boxplot/average = {auto},
+%		boxplot/every average/.style = {mark=*},
+%		x axis line style = {opacity=0},
+		title = {\textbf{Cora}},
+		axis x line = bottom,
+		axis y line = left,
+		enlarge y limits,
+		enlarge x limits,
+		ymajorgrids,
+		grid style = dashed,
+		xtick = {0, 1, 2, 3},
+%		xticklabel style = {align=center, font=\scriptsize},
+		xticklabels = {1, 2, 4, 8},
+		xlabel = {Number of mixtures p},
+%		xlabel style = {font=\scriptsize},
+%		xtick style = {draw=none}, % Hide tick line
+		ylabel = {Validation accuracy},
+%		ylabel style = {font=\scriptsize},
+%		yticklabel style = {font=\scriptsize},
+		ticklabel style = {font=\scriptsize},
+		label style = {font=\scriptsize},
+%		ytick = {0.78,0.79, 0.80, 0.81, 0.82, 0.83},
+%		yticklabels = {0.78,0.79, 0.80, 0.81, 0.82, 0.83},
+		legend pos = {south east},
+		legend style = {
+			enlarge x limits,
+			enlarge y limits,
+			font={\scriptsize},
+		}
+%                cycle list={[indices of colormap={6,7,8,3,2,1 of RdBu-10}]}
+	]
+%		\foreach \n in {2,...,7} {
+%			\addplot+[boxplot, fill, draw=black] table[col sep=comma, y index=\n] {\csvdata};
+%		}
+		\addplot+[mark=*,error bars/.cd, y fixed, y dir=both, y explicit] table[y index=3, y error index=4]{\csvdataunsup};
+		\addlegendentry{FIE unsup};
+		\addplot+[mark=*,error bars/.cd, y fixed, y dir=both, y explicit] table[y index=3, y error index=4]{\csvdatasup};
+		\addlegendentry{FIE sup};
+	\end{axis}
+\end{tikzpicture}
+\end{document}
