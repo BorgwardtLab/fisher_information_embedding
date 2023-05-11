@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "fisher_information_embedding"
 authors = [
     {name = "Dexiong Chen", email = "dechen@ethz.ch"},
-    {name = "Paolo Pellizzoni", email = "pellizzoni@ethz.ch"},
+    {name = "Paolo Pellizzoni", email = "ppellizzoni@ethz.ch"},
 ]
 description = "Fisher information embedding for node and graph learning"
 readme = "README.md"

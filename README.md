@@ -2,9 +2,9 @@
 
 This repository implements the Fisher information embedding (FIE) described in the following paper
 
->Dexiong Chen*, Paolo Pellizzoni*, and Karsten Borgwardt.
+>Dexiong Chen <sup>\*</sup>, Paolo Pellizzoni <sup>\*</sup>, and Karsten Borgwardt.
 [Fisher Information Embedding for Node and Graph Learning][1]. ICML 2023.
-<br/>*Equal contribution
+<br/><sup>\*</sup> Equal contribution
 
 **TL;DR**: a class of node embeddings with an information geometry interpretation, available with both unsupervised and supervised algorithms for learning the embeddings.
 
@@ -24,6 +24,7 @@ Please use the following to cite our work:
 ```
 
 ## A short description of FIE
+
 In this work, we
 propose a novel attention-based node embedding
 framework for graphs. Our framework builds
@@ -37,8 +38,8 @@ manifold of Gaussian mixtures, our method leads
 to a new attention mechanism for neighborhood
 aggregation.
 
-| ![](FIE.png) |
-|:--:| 
+| ![](images/FIE.png) |
+|:--| 
 |An illustration of the Fisher Information Embedding for nodes. **(a)** Multisets $h(\mathcal{S_G}(\cdot))$ of node features are obtained from the neighborhoods of each node. **(b)** Multisets are transformed to parametric distributions, e.g. $p_\theta$ and $p_{\theta'}$, via maximum likelihood estimation. **(c)** The node embeddings are obtained by estimating the parameter of each distribution using the EM algorithm at an anchor distribution $p_{\theta_0}$ as the starting point. The last panel shows a representation of the parametric distribution manifold $\mathcal{M}$ and its tangent space $T_{\theta_0}\mathcal{M}$ at the anchor point $\theta_0$. The points $p_{\theta}$ and $p_{\theta'}$ represent probability distributions on $\mathcal{M}$ and the gray dashed line between them their geodesic distance. The red dashed lines represent the retraction mapping $R_{\theta_0}^{-1}$. |
 
 #### Quickstart
