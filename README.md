@@ -27,6 +27,37 @@ Please use the following to cite our work:
 
 TODO Paolo: figure + some texts
 
+#### Quickstart
+
+<details><summary>click to see the example</summary>
+
+```python
+from torch_geometric import datasets
+from torch_geometric.loader import DataLoader
+
+# Construct data loader
+dataset = datasets.Planetoid('./datasets/citation', name='Cora', split='public')
+data_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+input_size = dataset.num_node_features
+
+# Build FIE model
+model = FIENet(
+    input_size,
+    num_layers=2,
+    hidden_size=16,
+    num_mixtures=8,
+    pooling=None,
+    concat=True
+)
+
+# Train model parameters using k-means
+model.unsup_train(data_loader)
+
+# Compute node embeddings
+X = model.predict(data_loader)
+```
+</details>
+
 ## Installation
 
 The dependencies are managed by [miniconda][2]. Run the following to install the dependencies
