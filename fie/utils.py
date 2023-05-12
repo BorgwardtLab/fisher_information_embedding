@@ -89,7 +89,6 @@ def spherical_kmeans(x, n_clusters, max_iters=100, verbose=True,
         for j in range(n_clusters):
             index = assign == j
             if index.sum() == 0:
-                # clusters[j] = x[random.randrange(n_samples)]
                 idx = tmp.argmin()
                 clusters[j] = x[idx]
                 tmp[idx] = 1

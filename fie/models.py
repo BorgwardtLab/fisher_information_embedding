@@ -56,14 +56,8 @@ class FIENet(nn.Module):
         outputs = [x]
         output = x
         for i, mod in enumerate(self.layers):
-            # if i == self.num_layers - 1:
-            #     output = mod(outputs[-1], edge_index, edge_attr, deg_sqrt=deg_sqrt, before_out_proj=True)
-            # else:
-            #     output = mod(output, edge_index, edge_attr, deg_sqrt=deg_sqrt)
             output = mod(output, edge_index, edge_attr, deg_sqrt=deg_sqrt)
-            # output = mod(output, edge_index, edge_attr, deg_sqrt=deg_sqrt, before_out_proj=True)
             outputs.append(output)
-            # output = mod.out_proj(output) * deg_sqrt.view(-1, 1)
 
         if self.concat:
             output = torch.cat(outputs, dim=-1)
@@ -252,7 +246,6 @@ class SupFIENet(nn.Module):
         self.num_layers = num_layers
         self.concat = concat
 
-        # self.in_head = nn.Linear(input_size, hidden_size)
         self.in_head = KernelLayer(input_size, hidden_size, sigma=out_proj_args)
 
         layers = []
@@ -437,7 +430,7 @@ class ReLUFIENet(nn.Module):
     def forward_ns(self, x, adjs, batch_size):
         x = self.in_head(x)
 
-        outputs = x#[:batch_size]
+        outputs = x
         for i, (edge_index, _, size) in enumerate(adjs):
             x_target = x[:size[1]]
             x = self.layers[i]((x, x_target), edge_index)
@@ -451,7 +444,6 @@ class ReLUFIENet(nn.Module):
     def inference_ns(self, x_all, subgraph_loader):
         device = x_all.device
         x_all = self.in_head(x_all)
-        # outputs = [x_all.cpu()]
         outputs = x_all.cpu()
         for i, mod in enumerate(self.layers):
             xs = []

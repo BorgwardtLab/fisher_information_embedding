@@ -18,7 +18,6 @@ class FIELayer(gnn.MessagePassing):
                  out_proj='kernel', kernel='exp', out_proj_args=0.5, use_deg=False):
         super().__init__(node_dim=0, aggr='add')#, flow='target_to_source')
         self.input_size = input_size
-        # self.hidden_size = hidden_size
         self.output_size = output_size
         self.num_mixtures = num_mixtures
         self.num_heads = num_heads
@@ -67,9 +66,6 @@ class FIELayer(gnn.MessagePassing):
             out = out - rearrange(self.weight, "p h d -> 1 d (p h)")
         out = rearrange(out, "n d p -> n (p d)")
 
-        # attn = torch.sparse_coo_tensor(edge_index, self._attn.squeeze()).to_dense()
-        # print(attn)
-
         if before_out_proj:
             return out
 
@@ -92,7 +88,6 @@ class FIELayer(gnn.MessagePassing):
         alpha_ij = utils.softmax(alpha_ij, index, ptr, size_i)
         x_j = rearrange(x_j, "n d -> n d 1")
         alpha_ij = rearrange(alpha_ij, "n p h -> n 1 (p h)")
-        # self._attn = alpha_ij
 
         return x_j * alpha_ij
 
@@ -110,7 +105,6 @@ class FIELayer(gnn.MessagePassing):
     def sample(self, x, edge_index, n_samples=1000):
         indices = torch.randperm(edge_index.shape[1])[:min(edge_index.shape[1], n_samples)]
         edge_index = edge_index[:, indices]
-        # x_feat = self.feature_transform(x[edge_index[0]], x[edge_index[1]])
         x_feat = self.feature_transform(x[edge_index[1]], x[edge_index[0]])
         return x_feat
 
