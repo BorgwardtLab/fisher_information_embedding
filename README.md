@@ -14,7 +14,7 @@ This repository implements the Fisher information embedding (FIE) described in t
 Please use the following to cite our work:
 
 ```bibtex
-@InProceedings{Chen23fie,
+@inproceedings{chen23fie,
     author = {Dexiong Chen and Paolo Pellizzoni and Karsten Borgwardt},
     title = {Fisher Information Embedding for Node and Graph Learning},
     year = {2023},
@@ -44,7 +44,8 @@ aggregation.
 
 #### Quickstart
 
-<details><summary>click to see the example</summary>
+<details>
+    <summary>Click to see the example</summary>
 
 ```python
 from torch_geometric import datasets
@@ -109,7 +110,7 @@ Please see Table 3 and 4 in our paper to find the search grids for each hyperpar
 
 #### Training models on supervised learning tasks using large OGB datasets
 
-- Unsupervised node embedding mode with FLAML:
+- Unsupervised node embedding mode with [FLAML](https://microsoft.github.io/FLAML/):
   ```bash
   python train_ogb_node.py --save-memory --dataset ogbn-arxiv --hidden-size 256 --num-mixtures 8 --num-layers 5
   ```
